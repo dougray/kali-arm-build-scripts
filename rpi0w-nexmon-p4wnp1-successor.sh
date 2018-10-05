@@ -1,6 +1,42 @@
 #!/bin/bash
 set -e
 
+######
+# This is a work in progress script for P4wnP1 successor based on @binkybear's built script for P4wnP1
+#
+# !! The script couldn't work for anybody else, as it relies on a (currently) private P4wnP1 repo !!
+#
+# Changes:
+# - Modified dwc2 driver to send netlink messages on multicast channel 24 to userspace, if driver works in gadget
+#   mode (currently from a fork of re4son kernel 4.14.50, till PR in main repo) --> works stable
+# - Python test script placed in "/root/dwc2_test" to test receiving of the mentioned netlink messages (blocking
+#   read == event based, no busy wait, select is only to allow SIGINT to end script)
+# - Nexmon firmware replaced by modified nexmon firmware with wifi_covert_channel and karma support (won't be merged
+#   into nexmon repo, as already discussed with Matthias Schulz [only monitor + injection functionality in main repo])
+# - Brcmfmac driver of re4son kernel replaced by modified driver from same custom nexmon repo. Needed, as the custom netlink
+#   interface for wifi covert channel is implemented on driver side. (Note: This can't be PR'ed into re4son kernel
+#   as the driver only works with the modified firmware, not with default nexmon firmware). The brcmfmac driver of the re4son 
+#   kernel tree is overwritten by the one from the custom nexmon repo, before the kernel is compiled.
+# - Python scripts to interface with wifi firmware/driver karma functionalities placed in '/root/P4wnP1_nexmon_additions'
+# - Replaced old P4wnP1 installer with installer of P4wnP1 successor !!! THIS DOESN'T WORK FOR ANYBODY YET, AS THE REPO IS STILL PRIVATE !!!
+#
+# ToDos:
+# - Update everything to latest re4son kernel (currently 4.14.62), everything here is still built around 4.14.50
+# - Remove non-nexmon firmware from the script, or add the unmodified brcmfmac driver in case nexmon should be optional (latter 
+#   is unlikely)
+# - Enable nexmon monitor interface by default, as hostapd would try to bring up an own monitor interface otherwise and
+#   ultimately fail to bring up an AP. This could only be circumvented, if the monitor interface is already up before running hostapd.
+# - Check if the bluetooth stack works with P4wnP1 successor (interfaces with Bluez DBus API and netlink based mgmt API)
+# - Remove all unneeded packages, boottime is currently about twice as long as on raspbian
+# - Find a way to avoid frequent fsck scans during reboot (not an issue on latest Raspbian)
+#
+# Additional notes:
+# - thx to @binkybear and @re4son-kernel for the hard work
+# - it is unlikely that the legacy P4wnP1 built-script produces a fully working image, as it needs similar changes for the
+#   brcmfmac driver and wifi firmware, in order to allow karma and wifi covert channel to work
+#
+##########
+
 # This is the Raspberry Pi Kali 0-W Nexmon ARM build script - http://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 # Maintained by @binkybear
