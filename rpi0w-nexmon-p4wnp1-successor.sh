@@ -18,14 +18,16 @@ set -e
 #   as the driver only works with the modified firmware, not with default nexmon firmware). The brcmfmac driver of the re4son 
 #   kernel tree is overwritten by the one from the custom nexmon repo, before the kernel is compiled.
 # - Python scripts to interface with wifi firmware/driver karma functionalities placed in '/root/P4wnP1_nexmon_additions'
-# - Replaced old P4wnP1 installer with installer of P4wnP1 successor !!! THIS DOESN'T WORK FOR ANYBODY YET, AS THE REPO IS STILL PRIVATE !!!
+# - Replaced old P4wnP1 installer with installer of P4wnP1 successor !!! THIS DOESN'T WORK FOR ANYBODY YET, AS THE REPO IS STILL 
+#   PRIVATE !!!
 #
 # ToDos:
 # - Update everything to latest re4son kernel (currently 4.14.62), everything here is still built around 4.14.50
 # - Remove non-nexmon firmware from the script, or add the unmodified brcmfmac driver in case nexmon should be optional (latter 
 #   is unlikely)
 # - Enable nexmon monitor interface by default, as hostapd would try to bring up an own monitor interface otherwise and
-#   ultimately fail to bring up an AP. This could only be circumvented, if the monitor interface is already up before running hostapd.
+#   ultimately fail to bring up an AP. This could only be circumvented, if the monitor interface is already up before running
+#   hostapd.
 # - Check if the bluetooth stack works with P4wnP1 successor (interfaces with Bluez DBus API and netlink based mgmt API)
 # - Remove all unneeded packages, boottime is currently about twice as long as on raspbian
 # - Find a way to avoid frequent fsck scans during reboot (not an issue on latest Raspbian)
