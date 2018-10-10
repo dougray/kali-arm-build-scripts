@@ -82,11 +82,14 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
+#base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
 #desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
-services="apache2 atftpd openssh-server openvpn tightvncserver"
-extras="firefox-esr xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware xfonts-terminus"
+#services="apache2 atftpd openssh-server openvpn tightvncserver"
+#extras="firefox-esr xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware xfonts-terminus"
+base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
+services="apache2 atftpd openssh-server openvpn"
+extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd"
 
 
 packages="${arm} ${base} ${services} ${extras}"
@@ -258,18 +261,11 @@ chmod 755 kali-${architecture}/usr/bin/btuart
 cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config.txt
 
 # move P4wnP1 in
-git clone https://github.com/mame82/P4wnP1_go
-cp -rf P4wnP1_go "${basedir}"/kali-${architecture}/root/P4wnP1
-rm -rf P4wnP1_go
+git clone https://github.com/mame82/P4wnP1_go "${basedir}"/kali-${architecture}/root/P4wnP1
 # test for dwc2 detection
-git clone https://github.com/mame82/dwc2_patch_userspace_test
-cp -rf dwc2_patch_userspace_test "${basedir}"/kali-${architecture}/root/dwc2_test
-rm -rf dwc2_patch_userspace_test
+git clone https://github.com/mame82/dwc2_patch_userspace_test "${basedir}"/kali-${architecture}/root/dwc2_test
 # test for karma mods detection
-git clone https://github.com/mame82/P4wnP1_nexmon_additions
-cp -rf P4wnP1_nexmon_additions "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
-rm -rf P4wnP1_nexmon_additions
-
+git clone https://github.com/mame82/P4wnP1_nexmon_additions "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -298,7 +294,7 @@ apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
-echo "Making the image insecure"
+echo "Allow root login..."
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 # Resize FS on first run (hopefully)
@@ -402,6 +398,12 @@ EOF
 
 cd ${TOPDIR}
 
+# cross compiler for pi 
+if [ ! -d "tools" ]; then
+	git clone https://github.com/raspberrypi/tools 
+fi
+
+
 # RPI Firmware
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
@@ -413,7 +415,10 @@ git clone https://github.com/mame82/nexmon_wifi_covert_channel.git -b wifi_cover
 
 # Setup build
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.50-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
+# temporary change, till PR merged
+#git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.62-p4wnp1 "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/mame82/re4son-raspberrypi-linux -b rpi-4.14.62-p4wnp1 "${basedir}"/kali-${architecture}/usr/src/kernel
+
 # replace brcmfmac driver with the one from the modified nexmon repo
 rm -R "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac
 cp -R "${basedir}"/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac_4.14.y-nexmon/ "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac
@@ -422,7 +427,8 @@ cd "${basedir}"/kali-${architecture}/usr/src/kernel
 
 # Set default defconfig
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+# use hard float with RPi cross compiler toolchain, as described here: https://www.raspberrypi.org/documentation/linux/kernel/building.md
+export CROSS_COMPILE=${TOPDIR}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-
 
 # Set default defconfig
 make re4son_pi1_defconfig
