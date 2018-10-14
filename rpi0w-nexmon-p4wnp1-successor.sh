@@ -89,7 +89,7 @@ tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john li
 #extras="firefox-esr xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware xfonts-terminus"
 base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
 services="apache2 atftpd openssh-server openvpn"
-extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd"
+extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5"
 
 
 packages="${arm} ${base} ${services} ${extras}"
