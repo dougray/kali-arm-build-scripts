@@ -2,7 +2,7 @@
 set -e
 
 ######
-# This is a work in progress script for P4wnP1 successor based on @binkybear's built script for P4wnP1
+# This is a work in progress script for P4wnP1 A.L.O.A. based on @binkybear's built script for P4wnP1
 #
 # !! The script couldn't work for anybody else, as it relies on a (currently) private P4wnP1 repo !!
 #
@@ -18,7 +18,7 @@ set -e
 #   as the driver only works with the modified firmware, not with default nexmon firmware). The brcmfmac driver of the re4son 
 #   kernel tree is overwritten by the one from the custom nexmon repo, before the kernel is compiled.
 # - Python scripts to interface with wifi firmware/driver karma functionalities placed in '/root/P4wnP1_nexmon_additions'
-# - Replaced old P4wnP1 installer with installer of P4wnP1 successor !!! THIS DOESN'T WORK FOR ANYBODY YET, AS THE REPO IS STILL 
+# - Replaced old P4wnP1 installer with installer of P4wnP1 A.L.O.A. !!! THIS DOESN'T WORK FOR ANYBODY YET, AS THE REPO IS STILL 
 #   PRIVATE !!!
 #
 # ToDos:
@@ -28,8 +28,9 @@ set -e
 # - Enable nexmon monitor interface by default, as hostapd would try to bring up an own monitor interface otherwise and
 #   ultimately fail to bring up an AP. This could only be circumvented, if the monitor interface is already up before running
 #   hostapd.
-# - Check if the bluetooth stack works with P4wnP1 successor (interfaces with Bluez DBus API and netlink based mgmt API)
-# - Remove all unneeded packages, boottime is currently about twice as long as on raspbian
+# - Check if the bluetooth stack works with P4wnP1 A.L.O.A. (interfaces with Bluez DBus API and netlink based mgmt API)
+#	--> bluetooth problems are fixed (hciattach vs btattach), re4son provided a patched deb package:
+#        pi-bluetooth+re4son_2.2_all.deb, which is included in this fork
 # - Find a way to avoid frequent fsck scans during reboot (not an issue on latest Raspbian)
 #
 # Additional notes:
@@ -53,7 +54,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/rpi0w-nexmon-p4wnp1-$1
+basedir=`pwd`/rpi0w-nexmon-p4wnp1-aloa-$1
 TOPDIR=`pwd`
 
 # Custom hostname variable
@@ -82,14 +83,16 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-#base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
-#desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
-#services="apache2 atftpd openssh-server openvpn tightvncserver"
-#extras="firefox-esr xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware xfonts-terminus"
 base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
 services="apache2 atftpd openssh-server openvpn"
-extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5"
+# haveged: assure enough entropy data for hostapd on startup
+# avahi-daemon: allow mDNS resolution (apple bonjour) by remote hosts
+# dhcpcd5: REQUIRED (P4wnP1 A.L.O.A. currently wraps this binary if a DHCP client is needed)
+# dnsmasq: REQUIRED (P4wnP1 A.L.O.A. currently wraps this binary if a DHCP server is needed, currently not used for DNS)
+# genisoimage: allow creation of CD-Rom iso images for CD-Rom USB gadget from existing folders on the fly
+# iodine: allow DNS tunneling
+extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5 avahi-daemon"
 
 
 packages="${arm} ${base} ${services} ${extras}"
@@ -161,14 +164,27 @@ console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
 # Create monitor mode start/remove
+# The script returns an error code if the monitor interface couldn't be started
+# Note: P4wnP1 provides the same script in /usr/local/bin/monassure so this could be replaced by a symlink
 cat << 'EOF' > kali-${architecture}/usr/bin/monstart
 #!/bin/bash
 interface=wlan0mon
-echo "Bring up monitor mode interface ${interface}"
-iw phy phy0 interface add ${interface} type monitor
-ifconfig ${interface} up
+echo -n "Create monitor mode interface ${interface}... "
+iw phy phy0 interface add ${interface} type monitor 2> /dev/null 1> /dev/null
 if [ $? -eq 0 ]; then
-  echo "started monitor interface on ${interface}"
+  echo "success"
+else
+  echo "failed, already created ?"
+fi
+
+echo -n "Trying to enable ${interface}... "
+ifconfig ${interface} up 2> /dev/null
+if [ $? -eq 0 ]; then
+  echo "success, ${interface} is up"
+  exit 0
+else
+  echo "failed"
+  exit 1
 fi
 EOF
 chmod 755 kali-${architecture}/usr/bin/monstart
@@ -226,45 +242,18 @@ WantedBy=multi-user.target
 EOF
 chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
 
-cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
-[Unit]
-Description=Copy user wpa_supplicant.conf
-ConditionPathExists=/boot/wpa_supplicant.conf
-Before=dhcpcd.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/mv /boot/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
-ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
-
-[Install]
-WantedBy=multi-user.target
-EOF
-chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
-
 # Bluetooth enabling
-mkdir -p kali-${architecture}/etc/udev/rules.d
-cp "${basedir}"/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
-mkdir -p kali-${architecture}/lib/systemd/system/
-cp "${basedir}"/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
 mkdir -p kali-${architecture}/lib/udev/rules.d/
 cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
-mkdir -p kali-${architecture}/usr/bin
-cp "${basedir}"/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
-cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
-# Ensure btuart is executable
-chmod 755 kali-${architecture}/usr/bin/btuart
+cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
 cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config.txt
 
-# move P4wnP1 in
+# move P4wnP1 in (change to release blob when ready)
 git clone https://github.com/mame82/P4wnP1_go "${basedir}"/kali-${architecture}/root/P4wnP1
-# test for dwc2 detection
-git clone https://github.com/mame82/dwc2_patch_userspace_test "${basedir}"/kali-${architecture}/root/dwc2_test
-# test for karma mods detection
+# test for karma mods detection (remove when ported to P4wnP1 A.L.O.A)
 git clone https://github.com/mame82/P4wnP1_nexmon_additions "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
 
 cat << EOF > kali-${architecture}/third-stage
@@ -293,7 +282,6 @@ apt-get --yes --allow-change-held-packages autoremove
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
-
 echo "Allow root login..."
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
@@ -305,8 +293,8 @@ systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
 
 # Install and hold pi-bluetooth deb package from re4son
-dpkg --force-all -i /root/pi-bluetooth_0.1.4+re4son_all.deb
-apt-mark hold pi-bluetooth
+dpkg --force-all -i /root/pi-bluetooth+re4son_2.2_all.deb
+apt-mark hold pi-bluetooth+re4son
 
 # systemd version 232 and above breaks execution of above bluetooth rule, let's fix that
 sed -i 's/^RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6.*/RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6 AF_BLUETOOTH/' /lib/systemd/system/systemd-udevd.service
@@ -320,19 +308,11 @@ systemctl enable hciuart
 mkdir -p /boot
 echo "dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait" > /boot/cmdline.txt
 
-# Install P4wnP1 (kali version)
-#cd /root
-#git clone --depth 1 https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
-#chmod 755 /root/P4wnP1/install.sh
-#cd /root/P4wnP1 
-#git submodule update --init --recursive --remote
-#./install.sh
-
+# Install P4wnP1 A.L.O.A.
 cd /root/P4wnP1
 make installkali
 
 echo "dwc2" | tee -a /etc/modules
-# echo "libcomposite" | tee -a /etc/modules # this is done by the P4wnP1 service
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
@@ -415,11 +395,10 @@ git clone https://github.com/mame82/nexmon_wifi_covert_channel.git -b wifi_cover
 
 # Setup build
 cd ${TOPDIR}
-# temporary change, till PR merged
-#git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.62-p4wnp1 "${basedir}"/kali-${architecture}/usr/src/kernel
+# temporary change, change back to re4son repo after PR and merge
 git clone --depth 1 https://github.com/mame82/re4son-raspberrypi-linux -b rpi-4.14.62-p4wnp1 "${basedir}"/kali-${architecture}/usr/src/kernel
 
-# replace brcmfmac driver with the one from the modified nexmon repo
+# replace brcmfmac driver in kernel source tree with the one from the nexmon repo with P4wnP1 modifications
 rm -R "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac
 cp -R "${basedir}"/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac_4.14.y-nexmon/ "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac
 mv "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/re4son-makefile.txt "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/Makefile
@@ -572,10 +551,6 @@ EOF
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
-
-# Build nexmon
-#LANG=C systemd-nspawn -M ${machine} -D "${basedir}"/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-#LANG=C systemd-nspawn -M ${machine} -D "${basedir}"/root/ /bin/bash -c "LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 # Unmount partitions
 sync
