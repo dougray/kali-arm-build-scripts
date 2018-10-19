@@ -303,6 +303,15 @@ sed -i 's/^RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6.*/Restric
 systemctl unmask bluetooth.service
 systemctl enable bluetooth
 systemctl enable hciuart
+# dhcpcd is needed by P4wnP1, but started on demand
+# installation of dhcpcd5 package enables a systemd unit starting dhcpcd for all
+# interfaces, which results in conflicts with DHCP servers running on created
+# bridge interface (especially for the bteth BNEP bridge). To avoid this we
+# disable the service. If communication problems occur, although DHCP leases
+# are handed out by dnsmasq, dhcpcd should be the first place to look
+# (no interface should hava an APIPA addr assigned, unless the DHCP client
+# was explcitely enabled by P4wnP1 for this interface)
+systemctl disable dhcpcd
 
 # Create cmdline.txt file
 mkdir -p /boot
