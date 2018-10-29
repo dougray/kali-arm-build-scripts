@@ -245,7 +245,7 @@ chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.servic
 # Bluetooth enabling
 mkdir -p kali-${architecture}/lib/udev/rules.d/
 cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
-cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
+cp "${basedir}"/../misc/brcm/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
