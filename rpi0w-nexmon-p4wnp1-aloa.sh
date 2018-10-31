@@ -92,7 +92,8 @@ services="apache2 atftpd openssh-server openvpn"
 # dnsmasq: REQUIRED (P4wnP1 A.L.O.A. currently wraps this binary if a DHCP server is needed, currently not used for DNS)
 # genisoimage: allow creation of CD-Rom iso images for CD-Rom USB gadget from existing folders on the fly
 # iodine: allow DNS tunneling
-extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5 avahi-daemon"
+# Note on Go: The golang package is version 1.10, so we are missing support for current gopherjs (webclient couldn't be build on Pi) and go modules (replacement for dep)
+extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5 avahi-daemon golang"
 
 
 packages="${arm} ${base} ${services} ${extras}"
