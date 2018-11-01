@@ -60,7 +60,7 @@ TOPDIR=`pwd`
 # Custom hostname variable
 hostname=${2:-kali}
 # Custom image name variable - MUST NOT include .img at the end.
-imagename=${3:-kali-linux-$1-rpi0w-nexmon-p4wnp1}
+imagename=${3:-kali-linux-$1-rpi0w-nexmon-p4wnp1-aloa}
 # Size of image in megabytes (Default is 4500=4.5GB)
 size=4500
 # Suite to use.  
@@ -247,7 +247,7 @@ chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.servic
 mkdir -p kali-${architecture}/lib/udev/rules.d/
 cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
 cp "${basedir}"/../misc/brcm/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
-cp "${basedir}"/../misc/brcm/BCM43430A1.hcd kali-${architecture}/lib/firmware/brcm/BCM43430A1.hcd
+#cp "${basedir}"/../misc/brcm/BCM43430A1.hcd kali-${architecture}/lib/firmware/brcm/BCM43430A1.hcd
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
@@ -407,12 +407,8 @@ git clone https://github.com/mame82/nexmon_wifi_covert_channel.git -b wifi_cover
 # Setup build
 cd ${TOPDIR}
 # temporary change, change back to re4son repo after PR and merge
-git clone --depth 1 https://github.com/mame82/re4son-raspberrypi-linux -b rpi-4.14.62-p4wnp1 "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/mame82/re4son-raspberrypi-linux -b rpi-4.14.71-re4son-p4wnp1 "${basedir}"/kali-${architecture}/usr/src/kernel
 
-# replace brcmfmac driver in kernel source tree with the one from the nexmon repo with P4wnP1 modifications
-rm -R "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac
-cp -R "${basedir}"/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac_4.14.y-nexmon/ "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac
-mv "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/re4son-makefile.txt "${basedir}"/kali-${architecture}/usr/src/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/Makefile
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 
 # Set default defconfig
@@ -503,6 +499,10 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 # The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
 #cp "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
+
+cp "${basedir}"/../misc/brcm/BCM43430A1.hcd "${basedir}"/kali-${architecture}/lib/firmware/brcm/BCM43430A1.hcd
+
+
 cd "${basedir}"
 
 cd "${basedir}"
