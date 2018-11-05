@@ -257,7 +257,7 @@ cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config
 # move P4wnP1 in (change to release blob when ready)
 git clone https://github.com/mame82/P4wnP1_go "${basedir}"/kali-${architecture}/root/P4wnP1
 # test for karma mods detection (remove when ported to P4wnP1 A.L.O.A)
-git clone https://github.com/mame82/P4wnP1_nexmon_additions -b p4wnp1 "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
+git clone https://github.com/mame82/P4wnP1_nexmon_additions "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -403,7 +403,7 @@ rm -rf rpi-firmware
 
 # Build nexmon firmware outside the build system, if we can (use repository with driver and firmware for P4wnP1).
 cd "${basedir}"
-git clone https://github.com/mame82/nexmon_wifi_covert_channel.git -b wifi_covert_channel2 "${basedir}"/nexmon --depth 1
+git clone https://github.com/mame82/nexmon_wifi_covert_channel.git -b p4wnp1 "${basedir}"/nexmon --depth 1
 
 # Setup build
 cd ${TOPDIR}
