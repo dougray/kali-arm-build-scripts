@@ -257,7 +257,7 @@ cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config
 # move P4wnP1 in (change to release blob when ready)
 git clone https://github.com/mame82/P4wnP1_go "${basedir}"/kali-${architecture}/root/P4wnP1
 # test for karma mods detection (remove when ported to P4wnP1 A.L.O.A)
-git clone https://github.com/mame82/P4wnP1_nexmon_additions "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
+git clone https://github.com/mame82/P4wnP1_nexmon_additions -b p4wnp1 "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
