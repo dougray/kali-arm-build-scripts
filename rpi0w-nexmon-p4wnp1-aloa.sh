@@ -94,9 +94,10 @@ services="apache2 atftpd openssh-server openvpn"
 # iodine: allow DNS tunneling
 # Note on Go: The golang package is version 1.10, so we are missing support for current gopherjs (webclient couldn't be build on Pi) and go modules (replacement for dep)
 extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5 avahi-daemon golang"
+# tools needed for online compilation of bare-metal arm and nexmon drivers
+buildtools="bc binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib gcc-arm-none-eabi-source gcc-7 g++-7 gcc-7-plugin-dev"
 
-
-packages="${arm} ${base} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras} ${buildtools}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -410,6 +411,28 @@ cd ${TOPDIR}
 git clone --depth 1 https://github.com/mame82/re4son-raspberrypi-linux -b rpi-4.14.71-re4son-p4wnp1 "${basedir}"/kali-${architecture}/usr/src/kernel
 
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
+
+# Note: Compiling the kernel in /usr/src/kernel of the target file system is problematic, as the binaries of the compiling host architecture
+# get deployed to the /usr/src/kernel/scripts subfolder (in this case linux-x64 binaries), which is symlinked to /usr/src/build later on.
+# This would f.e. hinder rebuilding single modules, like nexmon's brcmfmac driver, on the Pi itself (online compilation). 
+# The cause:building of modules relies on the pre-built binaries in /usr/src/build folder. But the helper binaries are compiled with the
+# HOST toolchain and not with the crosscompiler toolchain (f.e. /usr/src/kernel/script/basic/fixdep would end up as x64 binary, as this helper
+# is not compiled with the CROSS toolchain). As those scripts are used druing module build, it wouldn't work to build on the pi, later on,
+# without recompiling the helper binaries with the proper crosscompiler toolchain.
+#
+# To account for that, the 'script' subfolder could be rebuild on the target (online) by running `make scripts/` from /usr/src/kernel folder.
+# Rebuilding the script, again, depends on additional tooling, like `bc` binary, which has to be installed.
+#
+# Currently the step of recompiling the kernel/scripts folder has to be done manually online, but it should be possible to do it after kernel
+# build, by setting the host compiler (CC) to the gcc of the linaro-arm-linux-gnueabihf-raspbian-x64 toolchain (not only the CROSS_COMPILE).
+# The problem is, that the used linaro toolchain builds for armhf (not a problem for kernel, as there're no dependencies on hf librearies),
+# but the debian packages (and the provided gcc) are armel.
+#
+# To clean up this whole "armel" vs "armhf" mess, the kernel should be compiled with a armel toolchain (best choice would be the toolchain
+# which is used to build the kali armel packages itself, which is hopefully available for linux-x64)
+#
+# For now this is left as manual step, as the normal user shouldn't have a need to recompile kernel parts on the Pi itself.
+
 
 # Set default defconfig
 export ARCH=arm
