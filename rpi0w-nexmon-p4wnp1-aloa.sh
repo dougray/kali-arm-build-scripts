@@ -93,7 +93,7 @@ services="apache2 atftpd openssh-server openvpn"
 # genisoimage: allow creation of CD-Rom iso images for CD-Rom USB gadget from existing folders on the fly
 # iodine: allow DNS tunneling
 # Note on Go: The golang package is version 1.10, so we are missing support for current gopherjs (webclient couldn't be build on Pi) and go modules (replacement for dep)
-extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5 avahi-daemon golang"
+extras="wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip python-dev bluez bluez-firmware autossh policykit-1 iodine haveged genisoimage tcpdump dnsmasq hostapd dhcpcd5 avahi-daemon golang bash-completion"
 # tools needed for online compilation of bare-metal arm and nexmon drivers
 buildtools="bc binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib gcc-arm-none-eabi-source gcc-7 g++-7 gcc-7-plugin-dev"
 
