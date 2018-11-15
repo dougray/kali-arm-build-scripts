@@ -319,6 +319,13 @@ systemctl disable dhcpcd
 # enable fake-hwclock (P4wnP1 is intended to reboot/loose power frequently without getting NTP access in between)
 # a clean shutdown/reboot is needed, as fake-hwclock service saves time on stop
 systemctl enable fake-hwclock
+# add minutely cronjob to update fake-hwclock
+fhjob='* *	* * *	root	/usr/sbin/fake-hwclock'
+if ! grep -q -F "$fhjob" /etc/crontab; then
+	echo "$fhjob" >> /etc/crontab
+fi
+
+
 
 # Create cmdline.txt file
 mkdir -p /boot
