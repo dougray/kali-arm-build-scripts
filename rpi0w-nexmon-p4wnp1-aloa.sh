@@ -335,7 +335,11 @@ echo "dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0
 cd /root/P4wnP1
 make installkali
 
+# add Designware DUAL role USB driver to loaded modules
 echo "dwc2" | tee -a /etc/modules
+
+# allow root login from tyyGS0 (serial device for USB gadget)
+echo ttyGS0 >> /etc/securetty
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
