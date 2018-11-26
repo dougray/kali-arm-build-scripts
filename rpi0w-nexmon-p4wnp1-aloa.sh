@@ -4,45 +4,8 @@ set -e
 ######
 # This is a work in progress script for P4wnP1 A.L.O.A. based on @binkybear's built script for P4wnP1
 #
-# !! The script couldn't work for anybody else, as it relies on a (currently) private P4wnP1 repo !!
-#
-# Changes:
-# - Modified dwc2 driver to send netlink messages on multicast channel 24 to userspace, if driver works in gadget
-#   mode (currently from a fork of re4son kernel 4.14.50, till PR in main repo) --> works stable
-# - Python test script placed in "/root/dwc2_test" to test receiving of the mentioned netlink messages (blocking
-#   read == event based, no busy wait, select is only to allow SIGINT to end script)
-# - Nexmon firmware replaced by modified nexmon firmware with wifi_covert_channel and karma support (won't be merged
-#   into nexmon repo, as already discussed with Matthias Schulz [only monitor + injection functionality in main repo])
-# - Brcmfmac driver of re4son kernel replaced by modified driver from same custom nexmon repo. Needed, as the custom netlink
-#   interface for wifi covert channel is implemented on driver side. (Note: This can't be PR'ed into re4son kernel
-#   as the driver only works with the modified firmware, not with default nexmon firmware). The brcmfmac driver of the re4son 
-#   kernel tree is overwritten by the one from the custom nexmon repo, before the kernel is compiled.
-# - Python scripts to interface with wifi firmware/driver karma functionalities placed in '/root/P4wnP1_nexmon_additions'
-# - Replaced old P4wnP1 installer with installer of P4wnP1 A.L.O.A. !!! THIS DOESN'T WORK FOR ANYBODY YET, AS THE REPO IS STILL 
-#   PRIVATE !!!
-#
-# ToDos:
-# - Update everything to latest re4son kernel (currently 4.14.62), everything here is still built around 4.14.50
-# - Remove non-nexmon firmware from the script, or add the unmodified brcmfmac driver in case nexmon should be optional (latter 
-#   is unlikely)
-# - Enable nexmon monitor interface by default, as hostapd would try to bring up an own monitor interface otherwise and
-#   ultimately fail to bring up an AP. This could only be circumvented, if the monitor interface is already up before running
-#   hostapd.
-# - Check if the bluetooth stack works with P4wnP1 A.L.O.A. (interfaces with Bluez DBus API and netlink based mgmt API)
-#	--> bluetooth problems are fixed (hciattach vs btattach), re4son provided a patched deb package:
-#        pi-bluetooth+re4son_2.2_all.deb, which is included in this fork
-# - Find a way to avoid frequent fsck scans during reboot (not an issue on latest Raspbian)
-#
-# Additional notes:
-# - thx to @binkybear and @re4son-kernel for the hard work
-# - it is unlikely that the legacy P4wnP1 built-script produces a fully working image, as it needs similar changes for the
-#   brcmfmac driver and wifi firmware, in order to allow karma and wifi covert channel to work
-#
 ##########
 
-# This is the Raspberry Pi Kali 0-W Nexmon ARM build script - http://www.kali.org/downloads
-# A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
-# Maintained by @binkybear
 
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root"
@@ -62,7 +25,7 @@ hostname=${2:-kali}
 # Custom image name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi0w-nexmon-p4wnp1-aloa}
 # Size of image in megabytes (Default is 4500=4.5GB)
-size=4500
+size=6000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -74,7 +37,7 @@ suite=kali-rolling
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 # Package installations for various sections.
-# This will build a minimal XFCE Kali system with the top 10 tools.
+# This will build a minimal Kali system with the top 10 tools.
 # This is the section to edit if you would like to add more packages.
 # See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
 # use. You can also install packages, using just the package name, but keep in
@@ -168,7 +131,11 @@ EOF
 
 # Create monitor mode start/remove
 # The script returns an error code if the monitor interface couldn't be started
-# Note: P4wnP1 provides the same script in /usr/local/bin/monassure so this could be replaced by a symlink
+# Note: Removing this should be considered, as enabling the monitor interface once
+# and using wpa_supplicant afterwards, crashs the WiFi firmware (even if the monitor
+# interface is removed). Afterwards the 'brcmfmac' module has to be removed and
+# loaded again (the driver push the firmware and restarts the fmac chip on init).
+# Sometimes only a reboot works
 cat << 'EOF' > kali-${architecture}/usr/bin/monstart
 #!/bin/bash
 interface=wlan0mon
@@ -249,16 +216,13 @@ chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.servic
 mkdir -p kali-${architecture}/lib/udev/rules.d/
 cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
 cp "${basedir}"/../misc/brcm/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
-#cp "${basedir}"/../misc/brcm/BCM43430A1.hcd kali-${architecture}/lib/firmware/brcm/BCM43430A1.hcd
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
 cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config.txt
 
 # move P4wnP1 in (change to release blob when ready)
-git clone https://github.com/mame82/P4wnP1_go "${basedir}"/kali-${architecture}/root/P4wnP1
-# test for karma mods detection (remove when ported to P4wnP1 A.L.O.A)
-git clone https://github.com/mame82/P4wnP1_nexmon_additions "${basedir}"/kali-${architecture}/root/P4wnP1_nexmon_additions
+git clone  -b 'v0.1.0-alpha1' --single-branch --depth 1  https://github.com/mame82/P4wnP1_go "${basedir}"/kali-${architecture}/root/P4wnP1
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -320,13 +284,6 @@ systemctl disable dhcpcd
 # enable fake-hwclock (P4wnP1 is intended to reboot/loose power frequently without getting NTP access in between)
 # a clean shutdown/reboot is needed, as fake-hwclock service saves time on stop
 systemctl enable fake-hwclock
-# add minutely cronjob to update fake-hwclock
-fhjob='* *	* * *	root	/usr/sbin/fake-hwclock'
-if ! grep -q -F "$fhjob" /etc/crontab; then
-	echo "$fhjob" >> /etc/crontab
-fi
-
-
 
 # Create cmdline.txt file
 mkdir -p /boot
@@ -341,6 +298,9 @@ echo "dwc2" | tee -a /etc/modules
 
 # allow root login from tyyGS0 (serial device for USB gadget)
 echo ttyGS0 >> /etc/securetty
+
+# add minutely cronjob to update fake-hwclock
+echo '* * * * * root /usr/sbin/fake-hwclock' >> /etc/crontab
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
@@ -374,6 +334,7 @@ fi
 cat << EOF > kali-${architecture}/cleanup
 #!/bin/bash
 rm -rf /root/.bash_history
+rm -rf /root/P4wnP1_go
 apt-get update
 apt-get clean
 rm -f /0
@@ -384,11 +345,6 @@ EOF
 
 chmod 755 kali-${architecture}/cleanup
 LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
-
-#umount kali-$architecture/proc/sys/fs/binfmt_misc
-#umount kali-$architecture/dev/pts
-#umount kali-$architecture/dev/
-#umount kali-$architecture/proc
 
 # Enable login over serial
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-${architecture}/etc/inittab
@@ -540,9 +496,6 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 #cp "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
 
 cp "${basedir}"/../misc/brcm/BCM43430A1.hcd "${basedir}"/kali-${architecture}/lib/firmware/brcm/BCM43430A1.hcd
-
-
-cd "${basedir}"
 
 cd "${basedir}"
 
